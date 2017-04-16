@@ -10,6 +10,7 @@
 
     <modules>
         <module>revolut</module>
+        <module>chatfuel</module>
     </modules>
 
     <properties>
