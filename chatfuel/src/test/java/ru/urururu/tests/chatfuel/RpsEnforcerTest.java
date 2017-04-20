@@ -24,4 +24,20 @@ public class RpsEnforcerTest {
         assertEquals(true, enforcer.allowed(1999)); // 1st request ever
         assertEquals(false, enforcer.allowed(2000)); // have to wait 999 more ms
     }
+
+    @Test
+    public void testSecondBoundaryBig() {
+        RpsEnforcer enforcer = new RpsEnforcer(1000);
+
+        for (int i = 0; i < 1000; i++) {
+            assertEquals(true, enforcer.allowed(1999)); // requests at the end of second
+        }
+
+        for (int i = 0; i < 1000; i++) {
+            assertEquals(false, enforcer.allowed(2000)); // requests at the beginning of next second
+        }
+
+        assertEquals(false, enforcer.allowed(2998)); // still can't
+        assertEquals(true, enforcer.allowed(2999)); // can again
+    }
 }
