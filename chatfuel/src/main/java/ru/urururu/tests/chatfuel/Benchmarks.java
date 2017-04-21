@@ -21,7 +21,25 @@ public class Benchmarks {
 
     @Benchmark
     public void synchronizedSingleThread() {
-        RpsEnforcer enforcer = new RpsEnforcer(100000);
+        RpsEnforcer enforcer = new SynchronizedRpsEnforcer(100000);
+
+        for (int i = 0; i < 100000; i++) {
+            enforcer.allowed();
+        }
+    }
+
+    @Benchmark
+    public void unfairLockSingleThread() {
+        RpsEnforcer enforcer = new LockRpsEnforcer(100000);
+
+        for (int i = 0; i < 100000; i++) {
+            enforcer.allowed();
+        }
+    }
+
+    @Benchmark
+    public void fairLockSingleThread() {
+        RpsEnforcer enforcer = new LockRpsEnforcer(100000);
 
         for (int i = 0; i < 100000; i++) {
             enforcer.allowed();
