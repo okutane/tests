@@ -3,15 +3,15 @@ package ru.urururu.tests.chatfuel;
 /**
  * @author <a href="mailto:dmitriy.g.matveev@gmail.com">Dmitry Matveev</a>
  */
-public class LockRpsEnforcer implements RpsEnforcer {
+public class NonSynchronizedRpsEnforcer implements RpsEnforcer {
     private long[] lastRequests;
     private int nextPosition = 0;
 
-    public SynchronizedRpsEnforcer(int limit) {
+    public NonSynchronizedRpsEnforcer(int limit) {
         lastRequests = new long[limit];
     }
 
-    public synchronized boolean allowed() {
+    public boolean allowed() {
         return allowed(System.currentTimeMillis());
     }
 
