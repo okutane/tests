@@ -1,7 +1,6 @@
 package ru.urururu.tests.revolut;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -10,10 +9,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author <a href="mailto:dmitriy.g.matveev@gmail.com">Dmitry Matveev</a>
  */
 public class AccountRepository {
-    AtomicLong nextAccountId = new AtomicLong(1);
-    Map<Long, Account> accounts = new ConcurrentHashMap<>();
+    private AtomicLong nextAccountId;
+    private AtomicLong nextTransferId;
+    private Map<Long, Account> accounts;
 
     private AccountRepository() {
+        reset();
     }
 
     public Account add() {
@@ -32,15 +33,19 @@ public class AccountRepository {
         return Holder.INSTANCE;
     }
 
-    public void credit(long accountId, long amount) {
-        Account account = accounts.get(accountId);
+    public void setBalance(long accountId, long amount) {
+        if (amount < 0) {
+            throw new IllegalArgumentException("amount: " + amount);
+        }
+
+        Account account = getAccount(accountId);
 
         synchronized (account) {
-            account.setBalance(account.getBalance() + amount);
+            account.setBalance(amount);
         }
     }
 
-    public void transfer(long fromId, long toId, long amount) {
+    public long transfer(long fromId, long toId, long amount) {
         if (fromId > toId) {
             // ordering ids, to prevent deadlocks
             long temp = fromId;
@@ -49,15 +54,8 @@ public class AccountRepository {
             amount = -amount;
         }
 
-        Account from = accounts.get(fromId);
-        Account to = accounts.get(toId);
-
-        if (from == null) {
-            throw new IllegalArgumentException("no user with id: " + fromId);
-        }
-        if (to == null) {
-            throw new IllegalArgumentException("no user with id: " + toId);
-        }
+        Account from = getAccount(fromId);
+        Account to = getAccount(toId);
 
         synchronized (from) {
             synchronized (to) {
@@ -73,6 +71,25 @@ public class AccountRepository {
                 to.setBalance(to.getBalance() + amount);
             }
         }
+
+        return nextTransferId.getAndIncrement();
+    }
+
+    private Account getAccount(long fromId) {
+        Account account = accounts.get(fromId);
+
+        if (account == null) {
+            throw new IllegalArgumentException("no user with id: " + fromId);
+        }
+
+        return account;
+    }
+
+    @Deprecated
+    void reset() {
+        nextAccountId = new AtomicLong(1);
+        nextTransferId = new AtomicLong(1);
+        accounts = new ConcurrentHashMap<>();
     }
 
     private static class Holder {
