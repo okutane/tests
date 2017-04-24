@@ -9,19 +9,18 @@ import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author <a href="mailto:dmitriy.g.matveev@gmail.com">Dmitry Matveev</a>
  */
 public class LimitedHttpClient {
     private final int limit;
-    private int currentRps = 0;
+    private AtomicInteger currentRps = new AtomicInteger();
     private Queue<Long> releaseTimes = new ConcurrentLinkedQueue<>();
     private final BlockingQueue<Runnable> tasks = new LinkedBlockingDeque<>();
     private final Thread[] workers;
     private final Thread cleaner;
-
-    private final Object rpsLock = new Object();
 
     LimitedHttpClient(int limit) {
         this.limit = limit;
@@ -48,10 +47,7 @@ public class LimitedHttpClient {
                         }
                     }
 
-                    synchronized (rpsLock) {
-                        currentRps--;
-                        rpsLock.notify();
-                    }
+                    currentRps.getAndDecrement();
                 }
             }
         });
@@ -62,16 +58,15 @@ public class LimitedHttpClient {
         while (true) {
             Runnable task = tasks.poll();
 
-            synchronized (rpsLock) {
-                while (currentRps >= limit) {
-                    try {
-                        rpsLock.wait();
-                    } catch (InterruptedException e) {
-                        return; // todo redesign
-                    }
+            while (true) {
+                int rps = currentRps.get();
+                if (rps >= limit) {
+                    // todo sleep? thread yield?
+                    continue;
                 }
-
-                currentRps++;
+                if (currentRps.compareAndSet(rps, rps + 1)) {
+                    break; // success
+                }
             }
 
             try {
