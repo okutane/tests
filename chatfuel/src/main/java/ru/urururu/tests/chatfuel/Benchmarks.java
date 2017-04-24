@@ -56,27 +56,27 @@ public class Benchmarks {
     }
 
     @Benchmark
-    public void synchronized16Thread() {
+    public void synchronized8Thread() {
         RpsEnforcer enforcer = new SynchronizedRpsEnforcer(100000);
-        runOnMultipleThreads(enforcer, 16);
+        runOnMultipleThreads(enforcer, 8);
     }
 
     @Benchmark
-    public void unfairLock16Thread() {
+    public void unfairLock8Thread() {
         RpsEnforcer enforcer = new LockedRpsEnforcer(100000, new ReentrantLock(false));
-        runOnMultipleThreads(enforcer, 16);
+        runOnMultipleThreads(enforcer, 8);
     }
 
     @Benchmark
-    public void fairLock16Thread() {
+    public void fairLock8Thread() {
         RpsEnforcer enforcer = new LockedRpsEnforcer(100000, new ReentrantLock(true));
-        runOnMultipleThreads(enforcer, 16);
+        runOnMultipleThreads(enforcer, 8);
     }
 
     @Benchmark
-    public void atomic16Thread() {
+    public void atomic8Thread() {
         RpsEnforcer enforcer = new AtomicRpsEnforcer(100000);
-        runOnMultipleThreads(enforcer, 16);
+        runOnMultipleThreads(enforcer, 8);
     }
 
     private void runOnSingleThread(RpsEnforcer enforcer) {
