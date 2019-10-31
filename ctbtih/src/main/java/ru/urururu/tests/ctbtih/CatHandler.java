@@ -2,6 +2,7 @@ package ru.urururu.tests.ctbtih;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -9,7 +10,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public abstract class CatHandler {
     private final ThreadFactory factory;
-    private final AtomicReference<Thread> threadHolder = new AtomicReference<>();
+    private final AtomicInteger size = new AtomicInteger();
     private final ConcurrentLinkedQueue<Cat> queue = new ConcurrentLinkedQueue<>();
 
     public CatHandler() {
@@ -22,18 +23,12 @@ public abstract class CatHandler {
 
     public void handle(Cat cat) {
         queue.offer(cat);
-        Thread thread;
-        do {
-            thread = threadHolder.get();
-            if (thread != null) {
-                afterThreadExistanceEnsured();
-                return; // don't need to create (still running after cat has been added to queue or new
-                        // thread is about to start).
-            }
-            thread = factory.newThread(this::process);
-        } while (!threadHolder.compareAndSet(null, thread));
+        if (size.getAndIncrement() == 0) {
+            // we're first after start (or thread shutdown), let's start new thread
+            factory.newThread(this::process).start();
+        }
 
-        thread.start(); // we're owning newly created thread, let's start it.
+        afterThreadExistanceEnsured();
     }
 
     protected abstract void doHandle(Cat cat); // todo: hide it?
@@ -47,15 +42,23 @@ public abstract class CatHandler {
     }
 
     private void process() {
+        int s;
         Cat cat = queue.poll(); // not null
         do {
+            s = size.decrementAndGet();
             doHandle(cat);
+
+            if (s < 0) {
+                throw new IllegalStateException();
+            }
+            if (s == 0) {
+                beforeThreadHolderReset();
+                return;
+            }
+
             cat = queue.poll(); // can be null
         } while (cat != null);
 
-        beforeThreadHolderReset();
-
-        // nothing to do, time to die
-        threadHolder.set(null);
+        throw new IllegalStateException();
     }
 }
