@@ -26,7 +26,9 @@ public abstract class CatHandler {
         do {
             thread = threadHolder.get();
             if (thread != null) {
-                return; // don't need to create (still running after cat has been added to queue or new thread is about to start).
+                afterThreadExistanceEnsured();
+                return; // don't need to create (still running after cat has been added to queue or new
+                        // thread is about to start).
             }
             thread = factory.newThread(this::process);
         } while (!threadHolder.compareAndSet(null, thread));
@@ -36,12 +38,22 @@ public abstract class CatHandler {
 
     protected abstract void doHandle(Cat cat); // todo: hide it?
 
+    void afterThreadExistanceEnsured() {
+        // do nothing, used in tests only.
+    }
+
+    void beforeThreadHolderReset() {
+        // do nothing, used in tests only.
+    }
+
     private void process() {
         Cat cat = queue.poll(); // not null
         do {
             doHandle(cat);
             cat = queue.poll(); // can be null
         } while (cat != null);
+
+        beforeThreadHolderReset();
 
         // nothing to do, time to die
         threadHolder.set(null);
