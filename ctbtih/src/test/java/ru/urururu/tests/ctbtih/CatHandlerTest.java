@@ -103,7 +103,7 @@ public class CatHandlerTest {
             }
 
             @Override
-            void beforeThreadHolderReset() {
+            void processorShuttingDown() {
                 await();
             }
 
