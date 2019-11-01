@@ -2,6 +2,7 @@ package ru.urururu.tests.ctbtih;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.concurrent.*;
@@ -90,39 +91,6 @@ public class CatHandlerTest {
         Assert.assertEquals("handle count matches", 2, handleCount.get());
     }
 
-    @Test
-    public void testWhenCatIsPassedDuringThreadShutdownItsHandledInNewThread() throws Exception {
-        ThreadFactoryWithCounter factory = new ThreadFactoryWithCounter();
-        AtomicInteger threadExistanceCount = new AtomicInteger();
-
-        CatHandler handler = new CatHandler(factory) {
-            @Override
-            protected void doHandle(Cat cat) {
-                handleCount.incrementAndGet();
-                await();
-            }
-
-            @Override
-            void processorShuttingDown() {
-                await();
-            }
-
-            @Override
-            void afterThreadExistanceEnsured() {
-                if (threadExistanceCount.incrementAndGet() == 2) {
-                    await();
-                }
-            }
-        };
-        handler.handle(new Cat());
-        await();
-        handler.handle(new Cat());
-        await();
-
-        Assert.assertEquals("invocation count matches", 2, factory.getInvocationCount());
-        Assert.assertEquals("handle count matches", 2, handleCount.get());
-    }
-
     private void await() {
         try {
             barrier.await(1, TimeUnit.SECONDS);
@@ -132,7 +100,7 @@ public class CatHandlerTest {
     }
 
     private static class ThreadFactoryWithCounter implements ThreadFactory {
-        private final AtomicInteger invocationCount = new AtomicInteger();
+        protected final AtomicInteger invocationCount = new AtomicInteger();
 
         @Override
         public Thread newThread(Runnable r) {
