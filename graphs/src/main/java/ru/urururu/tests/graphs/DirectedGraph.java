@@ -9,8 +9,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 
-public class NaiveGraph<V> implements Graph<V> {
+public abstract class DirectedGraph<V> implements Graph<V> {
     private final List<V> vertices = new ArrayList<>();
     private final Map<V, Integer> indices = new HashMap<>();
 
@@ -18,7 +19,7 @@ public class NaiveGraph<V> implements Graph<V> {
 
     @Override
     public void addVertex(V vertex) {
-        synchronized (vertices) {
+        withWriteLock(() -> {
             if (indices.containsKey(vertex)) {
                 // vertices is a "set" by definition, so we're leaving our graph unchanged.
                 return;
@@ -27,23 +28,23 @@ public class NaiveGraph<V> implements Graph<V> {
             indices.put(vertex, vertices.size());
             vertices.add(vertex);
             outboundEdges.add(new BitSet());
-        }
+        });
     }
 
     @Override
     public void addEdge(V from, V to) {
-        synchronized (vertices) {
+        withWriteLock(() -> {
             int fromIndex = index(from);
             int toIndex = index(to);
 
             // edges is a "set" by definition, so we're leaving our graph unchanged.
             outboundEdges.get(fromIndex).set(toIndex);
-        }
+        });
     }
 
     @Override
     public Optional<List<Edge<V>>> getPath(V from, V to) {
-        synchronized (vertices) {
+        return withReadLock(() -> {
             int fromIndex = index(from);
             int toIndex = index(to);
 
@@ -53,8 +54,12 @@ public class NaiveGraph<V> implements Graph<V> {
 
             Optional<List<Integer>> path = findPath(fromIndex, toIndex);
             return path.map(this::toEdges);
-        }
+        });
     }
+
+    abstract void withWriteLock(Runnable runnable);
+
+    abstract <R> R withReadLock(Callable<R> callable);
 
     /*
      * @pre visited.cardinality() == path.size()

@@ -1,5 +1,10 @@
 package ru.urururu.tests.graphs;
 
+/**
+ * Poor man's pair.
+ *
+ * @param <V>
+ */
 public class Edge<V> {
     private final V from;
     private final V to;

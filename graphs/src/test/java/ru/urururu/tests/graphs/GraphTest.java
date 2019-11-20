@@ -7,11 +7,13 @@ import java.util.Optional;
 
 import static org.junit.Assert.*;
 
-public class NaiveGraphTest {
+public abstract class GraphTest {
+
+    protected abstract <V> Graph<V> createGraph();
 
     @Test
     public void testNoEdgesTrivialSolution() {
-        NaiveGraph<String> letters = new NaiveGraph<>();
+        Graph<String> letters = createGraph();
         letters.addVertex("A");
 
         Optional<List<Edge<String>>> findResult = letters.getPath("A", "A");
@@ -24,21 +26,9 @@ public class NaiveGraphTest {
 
     @Test
     public void testNoEdgesEmptySolution() {
-        NaiveGraph<String> letters = new NaiveGraph<>();
+        Graph<String> letters = createGraph();
         letters.addVertex("A");
         letters.addVertex("B");
-
-        Optional<List<Edge<String>>> findResult = letters.getPath("A", "B");
-
-        assertFalse("path not exists", findResult.isPresent());
-    }
-
-    @Test
-    public void testSingleEdgePathNotFound() {
-        NaiveGraph<String> letters = new NaiveGraph<>();
-        letters.addVertex("A");
-        letters.addVertex("B");
-        letters.addEdge("B", "A");
 
         Optional<List<Edge<String>>> findResult = letters.getPath("A", "B");
 
@@ -47,7 +37,7 @@ public class NaiveGraphTest {
 
     @Test
     public void testSingleEdgeDirectPathFound() {
-        NaiveGraph<String> letters = new NaiveGraph<>();
+        Graph<String> letters = createGraph();
         letters.addVertex("A");
         letters.addVertex("B");
         letters.addEdge("A", "B");
@@ -63,5 +53,19 @@ public class NaiveGraphTest {
 
         assertEquals("edge source matches", "A", edge.getFrom());
         assertEquals("edge destination matches", "B", edge.getTo());
+    }
+
+    @Test
+    public void testNoInfiniteSearchOnLoops() {
+        Graph<String> letters = createGraph();
+        letters.addVertex("A");
+        letters.addVertex("B");
+        letters.addVertex("C");
+        letters.addEdge("A", "B");
+        letters.addEdge("B", "A");
+
+        Optional<List<Edge<String>>> findResult = letters.getPath("A", "C");
+
+        assertFalse("path not exists", findResult.isPresent());
     }
 }
